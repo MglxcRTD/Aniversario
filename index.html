@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ruta mágica</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Quicksand', sans-serif;
+    background-image: url('img/ChatGPT\ Image\ 28\ may\ 2025\,\ 23_47_09.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+  }
+  .pantalla {
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+    background: rgba(255, 255, 255, 0.1);
+    transition: opacity 0.7s ease;
+    z-index: 10;
+  }
+  .pantalla.oculta {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .mapa-container {
+    width: 800px;
+    height: 700px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 30px;
+    box-shadow: 0 0 40px rgba(160, 200, 255, 0.4);
+    background: rgba(255, 255, 255, 0.6);
+    transition: transform 1s ease;
+    z-index: 20;
+  }
+  .mapa-container.zoom {
+    transform-origin: center center;
+    transform: scale(8);
+  }
+  .mapa, svg.lineas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 20px;
+    pointer-events: none;
+    user-select: none;
+    z-index: 1;
+  }
+  .punto,
+  .patito {
+    position: absolute;
+    z-index: 5;
+  }
+  .punto {
+    width: 18px;
+    height: 18px;
+    background: #add8e6;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(173, 216, 230, 0.8);
+  }
+  .patito {
+    width: 50px;
+    transition: all 0.3s ease;
+    z-index: 10;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
+  }
+  svg.lineas polyline {
+    stroke: #a3d5ff;
+    stroke-width: 4;
+    stroke-dasharray: 12,8;
+    fill: none;
+    filter: drop-shadow(0 0 4px #e0f7ff);
+  }
+  .controles {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    display: flex;
+    gap: 10px;
+  }
+  .controles button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 15px;
+    background: #cce8ff;
+    color: #2a3a4a;
+    cursor: pointer;
+    font-family: 'Pacifico', cursive;
+    box-shadow: 0 4px 10px rgba(180, 220, 255, 0.6);
+    transition: all 0.3s;
+  }
+  .controles button:hover {
+    background-color: #d8f1ff;
+    transform: scale(1.05);
+  }
+  .recuerdo {
+  width: 100vw;
+  height: 100vh;
+  background: rgba(230, 245, 255, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  z-index: 0;
+  transition: opacity 0.5s ease;
+  padding: 30px 40px;
+  text-align: center;
+}
+
+.recuerdo.activo {
+  z-index: 50;
+  opacity: 1;
+}
+
+.recuerdo h2 {
+  font-family: 'Pacifico', cursive;
+  color: #5caadb;
+  font-size: 2.6rem;
+  text-shadow: 0 0 6px #d9f4ff;
+  margin-bottom: 30px;
+}
+
+.contenido-recuerdo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  max-width: 1000px;
+}
+
+.contenido-recuerdo p {
+  max-width: 350px;
+  font-size: 1.2em;
+  color: #4b5e6e;
+  font-style: italic;
+  font-family: 'Cormorant Garamond', serif;
+  text-align: center;
+  animation: fadeInText 1s ease forwards;
+}
+
+.contenido-recuerdo img {
+  width: 250px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(173, 216, 230, 0.6);
+  opacity: 0;
+}
+
+.img-izquierda {
+  animation: subir 1.2s ease forwards;
+  animation-delay: 0.5s;
+}
+
+.img-derecha {
+  animation: bajar 1.2s ease forwards;
+  animation-delay: 0.5s;
+}
+
+/* Animaciones */
+@keyframes subir {
+  0% {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
+
+@keyframes bajar {
+  0% {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0px);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInText {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+  .btn-volver {
+    margin-top: 25px;
+    padding: 10px 25px;
+    font-size: 1.1rem;
+    background: #5caadb;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(92, 170, 219, 0.4);
+    transition: background-color 0.3s ease;
+    font-family: 'Pacifico', cursive;
+  }
+  .btn-volver:hover {
+    background-color: #7bbfee;
+  }
+
+  .bienvenida {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #fceaff, #d8f1ff);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: 'Pacifico', cursive;
+  padding: 40px;
+  z-index: 100;
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: fadeIn 1.2s ease;
+}
+
+.bienvenida h1 {
+  font-size: 3rem;
+  color: #a865c9;
+  margin-bottom: 20px;
+  text-shadow: 0 0 6px rgba(255, 200, 255, 0.6);
+}
+
+.bienvenida p {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.2rem;
+  max-width: 700px;
+  color: #4a4a4a;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.bienvenida button {
+  padding: 12px 28px;
+  font-size: 1.1rem;
+  background: #c5a8ff;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-family: 'Pacifico', cursive;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(165, 100, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.bienvenida button:hover {
+  background-color: #d8bfff;
+  transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.blur-out {
+  animation: blurFadeOut 1s forwards;
+}
+
+@keyframes blurFadeOut {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+
+
+</style>
+</head>
+<body>
+  <div class="bienvenida" id="pantallaInicio">
+  <h1>Bienvenida a la Ruta de Recuerdos</h1>
+  <p>Esta es la página de recuerdos de <strong>Abril</strong> y <strong>Miguel</strong>. Aprobechando este maravilloso día y ya que hablamos del concepto de hacer un mapa, he decidido hacer uno mas o menos decente con los conceptos de web que tengo(se que no esta muy pro pero le he metido todo el esfuerzo que podia jsjsj) aun asi espero que te guste mucho y que disfrutes de este viaje :D.</p>
+  <button onclick="transicionarMapa()">Entrar al mapa mágico 🦆</button>
+</div>
+  <div class="pantalla" id="pantallaMapa">
+    <div class="mapa-container" id="mapaContainer">
+      <img src="img/madrid-mapa.png" class="mapa" id="mapa" alt="Mapa de Madrid" />
+      <svg class="lineas" viewBox="0 0 800 700" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <polyline points="
+          440,338.31
+          422,335.09
+          408,335.09
+          336,408.03
+          322,422.03
+          298,424.99
+          306,479.78
+          300,486.50
+          318,494.76
+        " />
+      </svg>
+      <!-- puntos -->
+      <div class="punto" style="top: 48.33%; left: 55.00%;"></div>
+      <div class="punto" style="top: 47.87%; left: 52.75%;"></div>
+      <div class="punto" style="top: 47.87%; left: 51.00%;"></div>
+      <div class="punto" style="top: 68.54%; left: 38.25%;"></div>
+      <div class="punto" style="top: 69.50%; left: 37.50%;"></div>
+      <div class="punto" style="top: 70.68%; left: 39.75%;"></div>
+      <div class="punto" style="top: 58.29%; left: 42.00%;"></div>
+      <div class="punto" style="top: 60.29%; left: 40.25%;"></div>
+      <div class="punto" style="top: 60.72%; left: 37.25%;"></div>
+
+      <img src="img/gomagomita.avif" class="patito" id="patito" style="top: 20%; left: 30%;" alt="Patito de goma" />
+    </div>
+  </div>
+
+  <div class="controles">
+    <button onclick="anterior()">←</button>
+    <button onclick="verRecuerdo()">Ver recuerdo</button>
+    <button onclick="siguiente()">→</button>
+  </div>
+
+<div class="recuerdo" id="recuerdo">
+  <h2 id="titulo"></h2>
+  <div class="contenido-recuerdo">
+    <img id="imagenIzquierda" class="img-izquierda" src="" alt="Imagen izquierda del recuerdo" />
+    <p id="descripcion"></p>
+    <img id="imagenDerecha" class="img-derecha" src="" alt="Imagen derecha del recuerdo" />
+  </div>
+  <button class="btn-volver" onclick="volverMapa()">← Volver al mapa</button>
+</div>
+
+<script>
+const lugares = [
+  {
+    nombre: "Parque del Retiro",
+    img1: "img/retiro1.jpeg",
+    img2: "img/retiro 2.jpeg",
+    desc: "Bueno, para comenzar vamos a empezar por el lugar que mas hemos transicionado de la historia, el retiro. La verdad es que guardo recuerdos super bonitos de aqui. Fue un sitio donde tuviste tambien un punto de inflexión y donde hemos tenido tardes muy lindas con la mantita :)."
+  },
+  {
+    nombre: "Parque de las (nombre baneado jijij)",
+    img1: "img/teta1.jpg",
+    img2: "img/teta2.jpg",
+    desc: "Este sitio me parece muy especial, me acuerdo que la vez que fuimos yo fui super nervioso, sabiendo que iba a ser un día muy importante, la verdad es que desde ese día sentí que mis días siguientes iban a ser un poco más bonitos gracias a ti."
+  },
+  {
+    nombre: "LA PATOIGLESIA",
+    img1: "img/patoiglesia1.jpg",
+    img2: "img/patoiglesia2.jpg",
+    desc: "Uno de los primeros planes planificados, podriamos decir exposicion? jsjsjs, entre el meme de que no estaba abierto y demás el día que fuimos nos lo pasamos super bien."
+  },
+  {
+    nombre: "Bosquecito de Naval",
+    img1: "img/bosquenaval 1.jpg",
+    img2: "img/bosquenaval 2.webp",
+    desc: "Lindo sitio donde hemos ido un par de veces, la verdad es que es un sitio que me transmite mucha tranquilidad y me gusta mucho. Mantengo el recuerdo de que allí hablamos por primera vez de los sentimientos y demás y fue el día que vimos el atardecer con VIVA LA VIDA de fondo."
+  },
+  {
+    nombre: "Rio Alberche",
+    img1: "img/alberche 1.webp",
+    img2: "img/alberche 2.avif",
+    desc: "Auque solo haya ido una vez, siento que he estado más veces por que todas las veces que has ido me has pasado fotos y videos de perretes bañandose en el rio jsjsj. Esperando este año ir más veces contigo y no morir de hipotermia en el agua."
+  },
+  {
+    nombre: "Cruceiro",
+    img1: "img/cruceiro1.jpg",
+    img2: "img/cruceiro2.jpg",
+    desc: "Uno de los sitios a los que más hype tenia de ir. Me acuerdo que me hablabas de él con mucho cariño y me moría de ganas de ir. La verdad que es un sitio donde se respira mucha paz."
+  },
+  {
+    nombre: "Bolera",
+    img1: "img/bolera1.jpg",
+    img2: "img/bolera2.webp",
+    desc: "UNA DE NUESTRAS PRIMERAS QUEDADAS, me acuerdo que aquí llegué acojonado por que no se si recuerdas que casi me mato con el coche, aun así me lo pasé super bien contigo a pesar de que me humillaras a los bolos."
+  },
+  {
+    nombre: "SantaGloria",
+    img1: "img/santagloria1.webp",
+    img2: "img/santagloria2.jpeg",
+    desc: "Linda cafeteria del xanadu, fue donde pudiste ver por primera vez mi lado de pique jsjsjs. Recuerdo con mucho cariño ese momento."
+  },
+  {
+    nombre: "Anubis",
+    img1: "img/anubis1.png",
+    img2: "img/anubis2.jpg",
+    desc: "Para el final, he decidido dejar LA PRIMERA VEZ QUE QUEDAMOS A SOLAS. Ese día si que fui nervioso, iba con unas expectativas de saber si nos llevariamos bien en persona y fue la primera vez que senti que contigo las horas parecian minutos, a dia de hoy me sigue pasando."
+  }
+];
+
+let i = 0;
+let patito, mapaContainer, pantallaMapa, recuerdo;
+let titulo, imagenIzquierda, imagenDerecha, descripcion;
+let puntos;
+
+function moverPatito(index) {
+  const punto = puntos[index];
+  const contRect = mapaContainer.getBoundingClientRect();
+
+  // Usar porcentajes para el patito según estilos inline de puntos:
+  const topPercent = parseFloat(punto.style.top);
+  const leftPercent = parseFloat(punto.style.left);
+
+  patito.style.top = `${topPercent}%`;
+  patito.style.left = `${leftPercent}%`;
+}
+
+function anterior() {
+  if (i > 0) {
+    i--;
+    moverPatito(i);
+  }
+}
+
+function siguiente() {
+  if (i < puntos.length - 1) {
+    i++;
+    moverPatito(i);
+  }
+}
+
+function verRecuerdo() {
+  mapaContainer.classList.add("zoom");
+  setTimeout(() => {
+    pantallaMapa.classList.add("oculta");
+    recuerdo.classList.add("activo");
+
+    const lugar = lugares[i];
+    titulo.textContent = lugar?.nombre || "Un lugar especial";
+    imagenIzquierda.src = lugar?.img1 || "default1.jpg";
+    imagenDerecha.src = lugar?.img2 || "default2.jpg";
+    descripcion.textContent = lugar?.desc || "Un momento inolvidable.";
+  }, 800);
+}
+
+function volverMapa() {
+  recuerdo.classList.remove("activo");
+  pantallaMapa.classList.remove("oculta");
+  mapaContainer.classList.remove("zoom");
+  moverPatito(i);
+}
+
+function transicionarMapa() {
+  const bienvenida = document.getElementById("pantallaInicio");
+  bienvenida.classList.add("blur-out");
+
+  setTimeout(() => {
+    bienvenida.style.display = "none";
+    pantallaMapa.style.display = "flex";
+    moverPatito(i);
+  }, 1000);
+}
+
+window.onload = () => {
+  patito = document.getElementById("patito");
+  mapaContainer = document.getElementById("mapaContainer");
+  pantallaMapa = document.getElementById("pantallaMapa");
+  recuerdo = document.getElementById("recuerdo");
+
+  titulo = document.getElementById("titulo");
+  imagenIzquierda = document.getElementById("imagenIzquierda");
+  imagenDerecha = document.getElementById("imagenDerecha");
+  descripcion = document.getElementById("descripcion");
+
+  puntos = document.querySelectorAll(".punto");
+
+  pantallaMapa.style.display = "none";
+  moverPatito(i);
+};
+</script>
+
+</body>
+</html>
